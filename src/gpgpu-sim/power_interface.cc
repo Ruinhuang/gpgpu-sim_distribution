@@ -368,6 +368,12 @@ void calculate_hw_mcpat(const gpgpu_sim_config &config,
 
     wrapper->set_mem_ctrl_power(dram_reads, dram_writes, dram_pre);
 
+    // Tensor Core activity from NCU hardware counter (hw_perf.csv).
+    // Falls back to 0 if the column is missing (empty string).
+    double hw_tensor = 0;
+    if (hw_data.size() > HW_TENSOR_ACC && !hw_data[HW_TENSOR_ACC].empty())
+        hw_tensor = std::stod(hw_data[HW_TENSOR_ACC]);
+
     if(aggregate_power_stats){
       power_stats->ialu_acc_execution += power_stats->get_ialu_accessess(1);
       power_stats->imul24_acc_execution += power_stats->get_intmul24_accessess(1);
@@ -384,7 +390,10 @@ void calculate_hw_mcpat(const gpgpu_sim_config &config,
       power_stats->log_acc_execution += power_stats->get_log_accessess(1);
       power_stats->sin_acc_execution += power_stats->get_sin_accessess(1);
       power_stats->exp_acc_execution += power_stats->get_exp_accessess(1);
-      power_stats->tensor_acc_execution += power_stats->get_tensor_accessess(1);
+      if (power_simulation_mode == 1)
+          power_stats->tensor_acc_execution = hw_tensor;
+      else
+          power_stats->tensor_acc_execution += power_stats->get_tensor_accessess(1);
       power_stats->tex_acc_execution += power_stats->get_tex_accessess(1);
       power_stats->tot_fpu_acc_execution += power_stats->get_tot_fpu_accessess(1);
       power_stats->tot_sfu_acc_execution += power_stats->get_tot_sfu_accessess(1);
@@ -451,12 +460,15 @@ void calculate_hw_mcpat(const gpgpu_sim_config &config,
                               power_stats->get_fpmul_accessess(1), 
                               power_stats->get_fpdiv_accessess(1));
 
-      wrapper->set_trans_accesses(power_stats->get_sqrt_accessess(1), 
-                                  power_stats->get_log_accessess(1), 
-                                  power_stats->get_sin_accessess(1), 
+      wrapper->set_trans_accesses(power_stats->get_sqrt_accessess(1),
+                                  power_stats->get_log_accessess(1),
+                                  power_stats->get_sin_accessess(1),
                                   power_stats->get_exp_accessess(1));
 
-      wrapper->set_tensor_accesses(power_stats->get_tensor_accessess(1));
+      if (power_simulation_mode == 1)
+          wrapper->set_tensor_accesses(hw_tensor);
+      else
+          wrapper->set_tensor_accesses(power_stats->get_tensor_accessess(1));
 
       wrapper->set_tex_accesses(power_stats->get_tex_accessess(1));
 

@@ -90,6 +90,7 @@ enum hw_perf_t {
   HW_NUM_SM_IDLE,
   HW_CYCLES,
   HW_VOLTAGE,
+  HW_TENSOR_ACC,
   HW_TOTAL_STATS
 };
 
